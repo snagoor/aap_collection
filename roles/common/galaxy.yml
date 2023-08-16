@@ -1,0 +1,13 @@
+namespace: "snagoor"
+name: "common"
+version: "1.0.1"
+readme: "README.md"
+authors:
+    - "Nagoor Shaik <nagoor.s@gmail.com>"
+dependencies:
+license:
+    - "MIT"
+tags:
+    - role
+    - common_tasks
+repository: "https://www.github.com/snagoor/common"

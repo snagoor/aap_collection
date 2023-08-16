@@ -1,0 +1,14 @@
+namespace: "snagoor"
+name: "haproxy"
+version: "1.0.0"
+readme: "README.md"
+authors:
+    - "Nagoor Shaik <nagoor.s@gmail.com>"
+dependencies:
+license:
+    - "MIT"
+tags:
+    - role
+    - haproxy
+    - aap_lb
+repository: "https://www.github.com/snagoor/haproxy"

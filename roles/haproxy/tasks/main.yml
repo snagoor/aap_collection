@@ -1,0 +1,29 @@
+---
+# tasks file for haproxy
+- name: Install HAProxy package
+  ansible.builtin.yum:
+    name: haproxy
+    state: present
+    update_cache: true
+
+- name: Ensure haproxy_connect_any is enabled for HAProxy server
+  ansible.posix.seboolean:
+    name: haproxy_connect_any
+    state: true
+    persistent: true
+
+- name: Copy the HAProxy configuration file
+  ansible.builtin.template:
+    src: haproxy.cfg.j2
+    dest: /etc/haproxy/haproxy.cfg
+    owner: root
+    group: root
+    mode: 0644
+    validate: haproxy -c -f %s
+  notify: restart haproxy service
+
+- name: Start and Enable HAProxy Service
+  ansible.builtin.service:
+    name: haproxy
+    state: started
+    enabled: true
