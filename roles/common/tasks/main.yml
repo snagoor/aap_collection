@@ -29,12 +29,12 @@
 
 - name: Copy root ssh folder and contents
   ansible.builtin.copy:
-    src: "{{ ansible_env.HOME }}/.ssh"
-    dest: "{{ ansible_env.HOME }}/.ssh"
+    src: "{{ ansible_env.HOME }}/.ssh/"
+    dest: "{{ ansible_env.HOME }}/"
     owner: "{{ ansible_env.USER }}"
     group: "{{ ansible_env.USER }}"
     directory_mode: true
-    mode: "0700"
+    mode: "preserve"
 
 - name: Correct file permissions under ssh directory
   ansible.builtin.file:
