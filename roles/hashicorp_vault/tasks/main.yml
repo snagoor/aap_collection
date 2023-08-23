@@ -101,7 +101,7 @@
 
 - name: Parse output of vault init
   ansible.builtin.set_fact:
-  vault_init_parsed: "{{ vault_init['stdout'] | from_json }}"
+    vault_init_parsed: "{{ vault_init['stdout'] | from_json }}"
   when:
     - vault_init is defined
     - vault_init['changed']
