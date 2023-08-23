@@ -56,7 +56,7 @@
 
 - name: Create vault configuration file
   ansible.builtin.file:
-    path: vault_config.hcl
+    src: vault_config.hcl
     dest: /opt/vault/vault_config.hcl
     owner: root
     group: root
@@ -64,7 +64,7 @@
 
 - name: Create vault server systemd unit file
   ansible.builtin.file:
-    path: vault.service
+    src: vault.service
     dest: /etc/systemd/system/vault.service
     owner: root
     group: root
