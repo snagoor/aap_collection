@@ -55,7 +55,7 @@
     mode: '0644'
 
 - name: Create vault configuration file
-  ansible.builtin.file:
+  ansible.builtin.copy:
     src: vault_config.hcl
     dest: /opt/vault/vault_config.hcl
     owner: root
@@ -63,7 +63,7 @@
     mode: '0660'
 
 - name: Create vault server systemd unit file
-  ansible.builtin.file:
+  ansible.builtin.copy:
     src: vault.service
     dest: /etc/systemd/system/vault.service
     owner: root
