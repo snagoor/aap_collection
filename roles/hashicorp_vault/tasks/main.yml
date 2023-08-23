@@ -37,11 +37,11 @@
 - name: Create certificate signing request (CSR) for self-signed certificate
   community.crypto.openssl_csr_pipe:
     privatekey_path: /opt/vault/tls/vault.key
-    common_name: vault.example.com
-    organization_name: Red Hat
+    common_name: "{{ ansible_fqdn }}"
+    organization_name: "{{ org_name | default('Red Hat') }}"
     subject_alt_name:
-      - "DNS:vault.example.com"
-      - "DNS:secret.example.com"
+      - "DNS:{{ ansible_fqdn }}"
+      - "DNS:secret.{{ ansible_domain }}"
   register: csr
 
 - name: Create self-signed certificate from CSR
@@ -54,17 +54,17 @@
     group: vault
     mode: '0644'
 
-- name: send the vault server config
-  ansible.builtin.template:
-    src: vault.config.j2
-    dest: /root/vault.hcl
+- name: Create vault configuration file
+  ansible.builtin.file:
+    path: vault_config.hcl
+    dest: /opt/vault/vault_config.hcl
     owner: root
     group: root
     mode: '0660'
 
-- name: Send the vault server systemd unit file
-  ansible.builtin.template:
-    src: vault.service.j2
+- name: Create vault server systemd unit file
+  ansible.builtin.file:
+    path: vault.service
     dest: /etc/systemd/system/vault.service
     owner: root
     group: root
