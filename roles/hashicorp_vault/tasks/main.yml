@@ -57,7 +57,7 @@
 - name: Create vault configuration file
   ansible.builtin.copy:
     src: vault_config.hcl
-    dest: /opt/vault/vault_config.hcl
+    dest: /opt/vault/vault.hcl
     owner: root
     group: root
     mode: '0660'
@@ -70,11 +70,15 @@
     group: root
     mode: '0655'
 
-- name: Enable and restart the vault service
+- name: Run systemd daemon reload
   ansible.builtin.systemd:
     name: vault
-    enabled: true
     daemon_reload: true
+
+- name: Restart and enable vault service
+  ansible.builtin.service:
+    name: vault
+    enabled: true
     state: restarted
 
 - name: Write VAULT_ADDR and VAULT_CACERT vars to bashrc

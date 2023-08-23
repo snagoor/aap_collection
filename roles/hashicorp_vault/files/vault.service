@@ -1,0 +1,13 @@
+[Unit]
+Description=vault
+Wants=network.target network-online.target
+After=network.target network-online.target
+
+[Service]
+Type=notify
+ExecStart=/usr/bin/vault server -config=/opt/vault/vault.hcl
+UMask=0066
+
+[Install]
+WantedBy=multi-user.target
+Alias=syslog.service
