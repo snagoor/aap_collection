@@ -1,0 +1,137 @@
+---
+# tasks file for hashicorp_vault
+- name: Install vault repo
+  ansible.builtin.get_url:
+    url: https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
+    dest: /etc/yum.repos.d/hashicorp.repo
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Install required RPMs
+  ansible.builtin.dnf:
+    name:
+      - vault
+      - python3-cryptography
+    state: latest
+
+- name: Create directories for vault server storage and certs
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    recurse: true
+    owner: root
+    group: root
+    mode: '0770'
+  loop:
+    - /opt/vault/data/
+    - /opt/vault/tls/
+
+- name: Create private key (RSA, 4096 bits)
+  community.crypto.openssl_privatekey:
+    path: /opt/vault/tls/vault.key
+    owner: root
+    group: vault
+    mode: '0640'
+
+- name: Create certificate signing request (CSR) for self-signed certificate
+  community.crypto.openssl_csr_pipe:
+    privatekey_path: /opt/vault/tls/vault.key
+    common_name: vault.example.com
+    organization_name: Red Hat
+    subject_alt_name:
+      - "DNS:vault.example.com"
+      - "DNS:secret.example.com"
+  register: csr
+
+- name: Create self-signed certificate from CSR
+  community.crypto.x509_certificate:
+    path: /opt/vault/tls/vault.pem
+    csr_content: "{{ csr.csr }}"
+    privatekey_path: /opt/vault/tls/vault.key
+    provider: selfsigned
+    owner: root
+    group: vault
+    mode: '0644'
+
+- name: send the vault server config
+  ansible.builtin.template:
+    src: vault.config.j2
+    dest: /root/vault.hcl
+    owner: root
+    group: root
+    mode: '0660'
+
+- name: Send the vault server systemd unit file
+  ansible.builtin.template:
+    src: vault.service.j2
+    dest: /etc/systemd/system/vault.service
+    owner: root
+    group: root
+    mode: '0655'
+
+- name: Enable and restart the vault service
+  ansible.builtin.systemd:
+    name: vault
+    enabled: true
+    daemon_reload: true
+    state: restarted
+
+- name: Write VAULT_ADDR and VAULT_CACERT vars to bashrc
+  ansible.builtin.lineinfile:
+    line: "{{ item }}"
+    path: /root/.bashrc
+  loop:
+    - export VAULT_ADDR="https://{{ ansible_fqdn }}:8200"
+    - export VAULT_CACERT="/opt/vault/tls/vault.pem"
+
+- name: Source bashrc file
+  ansible.builtin.command: bash -c 'source /root/.bashrc'
+  changed_when: false
+
+- name: Check vault status
+  ansible.builtin.command: bash -c 'source /root/.bashrc; vault status'
+  failed_when: false
+  register: vault_status
+
+- name: Init the vault server and grab the keys
+  ansible.builtin.command:  bash -c 'source /root/.bashrc; vault operator init -format json'
+  when: '"Initialized        false" in vault_status.stdout_lines'
+  register: vault_init
+
+- name: Parse output of vault init
+  ansible.builtin.set_fact:
+  vault_init_parsed: "{{ vault_init['stdout'] | from_json }}"
+  when:
+    - vault_init is defined
+    - vault_init['changed']
+
+- name: Write unseal keys to files
+  ansible.builtin.copy:
+    dest: "unseal_key_{{ index }}"
+    content: "{{ item }}"
+  loop: "{{ vault_init_parsed['unseal_keys_hex'] | flatten(levels=1) }}"
+  loop_control:
+    index_var: index
+  when:
+    - vault_init is defined
+    - vault_init['changed']
+  delegate_to: localhost
+
+- name: Write root token to file
+  ansible.builtin.copy:
+    content: "{{ vault_init_parsed['root_token'] }}"
+    dest: "root_token_key"
+  when:
+    - vault_init is defined
+    - vault_init['changed']
+  delegate_to: localhost
+
+- name: Unseal vault
+  ansible.builtin.shell: "source ~/.bashrc; vault operator unseal -address=https://{{ ansible_fqdn }}:8200 {{ item }}"
+  loop: "{{ vault_init_parsed['unseal_keys_hex'] | flatten(levels=1) }}"
+  loop_control:
+    index_var: index
+  when:
+    - vault_init is defined
+    - vault_init['changed']
