@@ -79,7 +79,6 @@
     ipa-server-install
     --unattended
     --no-host-dns
-    --forward-policy first
     --realm "{{ freeipa_realm_name }}"
     --domain "{{ freeipa_domain_name }}"
     -a "{{ freeipa_admin_password }}"
@@ -88,7 +87,7 @@
     --ip-address "{{ ansible_default_ipv4['address'] | default(ansible_all_ipv4_addresses[0]) }}"
     {{ '--idstart=' + freeipa_idstart if freeipa_idstart is defined }}
     {{ '--idmax=' + freeipa_idmax if freeipa_idmax is defined }}
-    {{ '--setup-dns --auto-reverse --allow-zone-overlap' if freeipa_setup_dns }}
+    {{ '--setup-dns --auto-reverse --allow-zone-overlap --forward-policy first' if freeipa_setup_dns }}
     {{ dns_zone_manager if freeipa_dns_zone_mgr is defined }}
     {{ '--no-ntp' if not freeipa_setup_ntp }}
     {% if freeipa_setup_dns and freeipa_dns_forwarder|default([])|length %}
