@@ -8,9 +8,6 @@ freeipa_setup_ntp: True
 freeipa_idstart: '61000'
 freeipa_idmax: '200000'
 freeipa_setup_dns: True
-freeipa_dns_forwarder:
-  - '192.168.121.1'
-  - '1.1.1.1'
 dns_zone_manager: "root@{{ freeipa_domain_name }}"
 time_source: 'clock.redhat.com'
 freeipa_packages:
@@ -18,7 +15,6 @@ freeipa_packages:
   - bind-utils
   - openssh-clients
   - chrony
-  - firewalld
   - ipa-server
 freeipa_dns_packages:
   - bind
