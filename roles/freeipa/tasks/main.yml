@@ -1,0 +1,120 @@
+---
+# tasks file for freeipa
+- name: Setting hostname to "{{ ansible_fqdn }}"
+  ansible.builtin.hostname:
+    name: "{{ ansible_fqdn }}"
+
+- name: Adding host entry in /etc/hosts
+  ansible.builtin.lineinfile:
+    dest: /etc/hosts
+    regexp: "{{ ansible_default_ipv4['address'] | default(ansible_all_ipv4_addresses[0]) }}"
+    line: "{{ ansible_default_ipv4['address'] | default(ansible_all_ipv4_addresses[0]) }}     {{ ansible_fqdn }}    {{ ansible_hostname }}"
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Installing required packages for FreeIPA on RHEL7
+  ansible.builtin.yum:
+    name: "{{ freeipa_packages }}"
+    state: present
+  when: ansible_distribution_major_version == "7"
+
+- name: Installing RHEL8 IDM server module
+  ansible.builtin.dnf:
+    name: "@idm:DL1/server"
+    state: present
+  when: ansible_distribution_major_version == "8"
+
+- name: Installing FreeIPA dns packages on RHEL7
+  ansible.builtin.yum:
+    name: "{{ freeipa_dns_packages }}"
+    state: present
+  when: freeipa_setup_dns and ansible_distribution_major_version == "7"
+
+- name: Installing RHEL8 IDM DNS module
+  ansible.builtin.dnf:
+    name: "@idm:DL1/dns"
+    state: present
+  when: freeipa_setup_dns and ansible_distribution_major_version == "8"
+
+- name: Stop NTPD service
+  ansible.builtin.service:
+    name: ntpd
+    state: stopped
+    enabled: no
+  failed_when: false
+  when: ansible_distribution_major_version == "7"
+
+- name: Ensure time is properly synced
+  ansible.builtin.command: bash -c "ntpdate {{ time_source }}"
+  changed_when: false
+  when: ansible_distribution_major_version == "7"
+
+- name: Adding nameserver entry in /etc/resolv.conf
+  ansible.builtin.lineinfile:
+    backup: yes
+    path: /etc/resolv.conf
+    insertbefore: "^nameserver"
+    line: "nameserver {{ ansible_default_ipv4['address'] | default(ansible_all_ipv4_addresses[0]) }}"
+    state: present
+  when: freeipa_setup_dns
+
+- name: Generating entropy using rngd utility
+  ansible.builtin.command: rngd -r /dev/urandom
+  changed_when: false
+
+- name: Enable and start firewalld and chronyd services
+  ansible.builtin.service:
+    name: "{{ item }}"
+    state: started
+    enabled: yes
+  loop:
+    - firewalld
+    - chronyd
+
+- name: Allowing required ports through firewalld for FreeIPA
+  ansible.posix.firewalld:
+    service: "{{ item }}"
+    permanent: true
+    immediate: true
+    state: enabled
+  loop: "{{ firewalld_services }}"
+  when: ansible_distribution_major_version >= "7"
+
+- name: Allow DNS service if installed
+  ansible.posix.firewalld:
+    service: "dns"
+    permanent: true
+    immediate: true
+    state: enabled
+  when: freeipa_setup_dns and ansible_distribution_major_version >= "7"
+
+- name: Detect FreeIPA installation
+  ansible.builtin.command: bash -c "ipactl status"
+  register: ipa_installation
+  changed_when: false
+  failed_when: false
+
+- name: Uninstall FreeIPA if previous installation found
+  ansible.builtin.command: bash -c "ipa-server-install -U --uninstall"
+  register: uninstall_ipa
+  when: force_uninstall_ipa and ipa_installation.rc == 0
+
+- name: Running the ipa-server-install
+  command: >
+    ipa-server-install
+    --unattended
+    --no-host-dns
+    --realm "{{ freeipa_realm_name }}"
+    --domain "{{ freeipa_domain_name }}"
+    -a "{{ freeipa_admin_password }}"
+    -p "{{ freeipa_dm_password }}"
+    --hostname "{{ ansible_fqdn }}"
+    --ip-address "{{ ansible_default_ipv4['address'] | default(ansible_all_ipv4_addresses[0]) }}"
+    {{ '--idstart=' + freeipa_idstart if freeipa_idstart is defined }}
+    {{ '--idmax=' + freeipa_idmax if freeipa_idmax is defined }}
+    {{ '--setup-dns --auto-reverse --allow-zone-overlap' if freeipa_setup_dns }}
+    {{ dns_zone_manager if freeipa_dns_zone_mgr is defined }}
+    {{ '--no-ntp' if not freeipa_setup_ntp }}
+    {% if freeipa_setup_dns and freeipa_dns_forwarder|length %}{% for i in range(0,(freeipa_dns_forwarder|length)) %}--forwarder={{ freeipa_dns_forwarder[i] }} {% endfor %}{% endif %}
+  when: ipa_installation.rc != 0 or force_uninstall_ipa
