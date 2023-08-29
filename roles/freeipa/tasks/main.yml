@@ -99,3 +99,25 @@
       --no-forwarders
     {% endif %}
   when: ipa_installation.rc != 0 or force_uninstall_ipa
+
+- name: Add FreeIPA hostname entry in base machine
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    line: "{{ ansible_default_ipv4['address'] }}    {{ ansible_fqdn }}    {{ ansible_hostname }}"
+    regexp: "{{ ansible_fqdn }}"
+    state: present
+  delegate_to: localhost
+  vars:
+    ansible_connection: local
+
+- name: Initialize IPA admin credentials
+  ansible.builtin.command: bash -c "echo '{{ freeipa_admin_password }}' | kinit admin"
+  when: ipa_installation.rc == 0
+
+- name: Modify max global password policy to 20000 days
+  ansible.builtin.command: ipa pwpolicy-mod global_policy --minlife=0 --maxlife=20000
+  when: ipa_installation.rc == 0
+
+- name: Modify default shell to /bin/bash
+  ansible.builtin.command: ipa config-mod --defaultshell=/bin/bash
+  when: ipa_installation.rc == 0
