@@ -97,6 +97,7 @@
     {% else %}
       --no-forwarders
     {% endif %}
+  register: ipa_install
   when: ipa_installation.rc != 0 or force_uninstall_ipa
 
 - name: Add FreeIPA hostname entry in base machine
@@ -111,12 +112,35 @@
 
 - name: Initialize IPA admin credentials
   ansible.builtin.command: bash -c "echo '{{ freeipa_admin_password }}' | kinit admin"
-  when: ipa_installation.rc == 0
+  when: ipa_installation['rc'] == 0 or (ipa_install is defined and ipa_install['rc'] == 0)
 
-- name: Modify max global password policy to 20000 days
-  ansible.builtin.command: ipa pwpolicy-mod global_policy --minlife=0 --maxlife=20000
-  when: ipa_installation.rc == 0
+- name: Modify the global password policy
+  community.general.ipa_pwpolicy:
+    maxpwdlife: '20000'
+    minpwdlife: '0'
+    ipa_host: "{{ ansible_fqdn }}"
+    ipa_user: admin
+    ipa_pass: "{{ freeipa_admin_password }}"
+  when: ipa_installation['rc'] == 0 or (ipa_install is defined and ipa_install['rc'] == 0)
 
-- name: Modify default shell to /bin/bash
-  ansible.builtin.command: ipa config-mod --defaultshell=/bin/bash
-  when: ipa_installation.rc == 0
+- name: Ensure the default login shell is bash
+  community.general.ipa_config:
+    ipadefaultloginshell: /bin/bash
+    ipa_host: "{{ ansible_fqdn }}"
+    ipa_user: admin
+    ipa_pass: "{{ freeipa_admin_password }}"
+  when: ipa_installation['rc'] == 0 or (ipa_install is defined and ipa_install['rc'] == 0)
+
+- name: Modify NetworkManager Server information
+  ansible.builtin.lineinfile:
+    path: /etc/NetworkManager/conf.d/zzz-ipa.conf
+    regexp: '^servers=127\.0\.0\.1*'
+    line: "servers={{ ansible_default_ipv4['gateway'] }}"
+  register: nm_config
+
+- name: Restart Network Manager Service
+  ansible.builtin.service:
+    name: NetworkManager
+    state: restarted
+    enabled: true
+  when: nm_config['changed']
