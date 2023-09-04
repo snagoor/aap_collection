@@ -1,0 +1,55 @@
+---
+# tasks file for configure_aap_cluster
+# References
+# https://access.redhat.com/solutions/5228651
+# https://access.redhat.com/solutions/3047261
+# https://access.redhat.com/solutions/3635571
+- name: Drop-in configuration file for web sockets over port 80
+  ansible.builtin.copy:
+    content: "{{ custom_config }}"
+    dest: /etc/tower/conf.d/custom.py
+    owner: root
+    group: awx
+    mode: 0640
+  notify: restart aap services
+
+- name: Configure AAP remote host headers
+  awx.awx.settings:
+    name: REMOTE_HOST_HEADERS
+    value: "{{ remote_host_headers }}"
+    controller_host: http://{{ inventory_hostname }}
+    controller_username: admin
+    controller_password: "{{ aap_setup_prep_inv_secrets['all']['admin_password'] }}"
+    validate_certs: false
+  run_once: true
+
+- name: Configure Proxy IP allowed list
+  awx.awx.settings:
+    name: PROXY_IP_ALLOWED_LIST
+    value: "{{ proxy_ip_allowed_list }}"
+    controller_host: http://{{ inventory_hostname }}
+    controller_username: admin
+    controller_password: "{{ aap_setup_prep_inv_secrets['all']['admin_password'] }}"
+    validate_certs: false
+  run_once: true
+
+- name: Configure Tower Base URL
+  awx.awx.settings:
+    name: TOWER_URL_BASE
+    value: "{{ tower_base_url }}"
+    controller_host: http://{{ inventory_hostname }}
+    controller_username: admin
+    controller_password: "{{ aap_setup_prep_inv_secrets['all']['admin_password'] }}"
+    validate_certs: false
+  run_once: true
+
+- name: Configure CSRF Trusted Origins
+  awx.awx.settings:
+    name: CSRF_TRUSTED_ORIGINS
+    value: "{{ tower_base_url.split(',') | list }}"
+    controller_host: http://{{ inventory_hostname }}
+    controller_username: admin
+    controller_password: "{{ aap_setup_prep_inv_secrets['all']['admin_password'] }}"
+    validate_certs: false
+  run_once: true
+  when: aap_setup_down_version is version('2.4','=')

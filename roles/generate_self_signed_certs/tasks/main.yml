@@ -71,4 +71,4 @@
     label: "{{ item['source'] }}"
 
 - name: Remove empty lines from the file
-  ansible.builtin.command: bash -c "sed -i '/^$/d' /etc/pki/tls/private/{{ ansible.hostname }}.pem"
+  ansible.builtin.command: bash -c "sed -i '/^$/d' /etc/pki/tls/private/{{ ansible_hostname }}.pem"
