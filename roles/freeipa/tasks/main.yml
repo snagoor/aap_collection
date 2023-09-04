@@ -5,13 +5,13 @@
     manager: auto
 
 - name: Installing RHEL8 IDM server module
-  ansible.builtin.dnf:
+  ansible.builtin.package:
     name: "@idm:DL1/server"
     state: present
   when: ansible_distribution_major_version is version('8', '=')
 
 - name: Installing RHEL8 IDM DNS module
-  ansible.builtin.dnf:
+  ansible.builtin.package:
     name: "@idm:DL1/dns"
     state: present
   when:
@@ -19,12 +19,12 @@
     - ansible_distribution_major_version is version('8', '=')
 
 - name: Installing required packages for FreeIPA Server
-  ansible.builtin.dnf:
+  ansible.builtin.package:
     name: "{{ freeipa_packages }}"
     state: present
 
 - name: Installing FreeIPA DNS packages
-  ansible.builtin.dnf:
+  ansible.builtin.package:
     name: "{{ freeipa_dns_packages }}"
     state: present
   when: freeipa_setup_dns

@@ -1,20 +1,20 @@
 ---
 # tasks file for haproxy
 - name: Install HAProxy package
-  ansible.builtin.yum:
+  ansible.builtin.package:
     name: haproxy
     state: present
     update_cache: true
 
-- name: Ensure haproxy_connect_any is enabled for HAProxy server
+- name: Enable haproxy_connect_any SELinux Boolean
   ansible.posix.seboolean:
     name: haproxy_connect_any
     state: true
     persistent: true
 
-- name: Copy the HAProxy configuration file
+- name: Copy HAProxy configuration file
   ansible.builtin.template:
-    src: haproxy.cfg.j2
+    src: "{{ (lb_server_offloading | default(true)) | ternary('offloading_haproxy.cfg.j2','passthrough_haproxy.cfg.j2') }}"
     dest: /etc/haproxy/haproxy.cfg
     owner: root
     group: root

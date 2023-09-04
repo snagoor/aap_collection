@@ -1,0 +1,42 @@
+global
+    log         localhost   local2
+    chroot      /var/lib/haproxy
+    pidfile     /var/run/haproxy.pid
+    maxconn     5000
+    user        haproxy
+    group       haproxy
+    daemon
+
+    stats       socket  /var/lib/haproxy/stats  level   admin
+    ssl-default-bind-ciphers    PROFILE=SYSTEM
+    ssl-default-server-ciphers  PROFILE=SYSTEM
+    tune.ssl.default-dh-param   2048
+
+defaults
+    mode        http
+    log         global
+    option      httplog
+    option      dontlognull
+    option      http-server-close
+    option      forwardfor  except  127.0.0.0/8
+    option      originalto  except  127.0.0.0/8
+    option      redispatch
+    retries     3
+    timeout     http-request    10s
+    timeout     queue           1m
+    timeout     connect         10s
+    timeout     client          1m
+    timeout     server          1m
+    timeout     http-keep-alive 10s
+    timeout     check           10s
+
+frontend    aap_https_frontend
+    bind    *:443   ssl  crt    /etc/pki/tls/private/aap.pem
+    default_backend     aap_http
+
+backend aap_http
+    mode    http
+    option  forwardfor
+{% for host in groups['aap_controller'] %}
+    server  aapserver{{ loop.index }}  {{ hostvars[host]['ansible_eth1']['ipv4']['address'] }}:80 maxconn 100 check
+{% endfor %}

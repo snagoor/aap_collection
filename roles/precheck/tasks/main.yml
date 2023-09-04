@@ -1,13 +1,13 @@
 ---
 # tasks file for precheck
-- name: AAP2 OS Compatability Check
+- name: AAP OS Compatability Check
   ansible.builtin.assert:
     that:
       - "{{ (aap_setup_rhel_version in supported_versions.keys()) }}"
     fail_msg: "Only Red Hat Enterprise Linux {{ supported_versions.keys() | list | join(' and ') }} are supported Operating Systems to run AAP2"
     quiet: true
 
-- name: AAP2 Version Compatability Check
+- name: AAP Version Compatability Check
   ansible.builtin.assert:
     that:
       - "{{ (aap_setup_rhel_version in supported_versions.keys() and aap_setup_down_version in supported_versions[aap_setup_rhel_version]) }}"

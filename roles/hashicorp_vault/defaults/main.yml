@@ -1,0 +1,4 @@
+---
+hashicorp_vault_home_dir: /opt/vault/
+hashicorp_vault_data_dir: /opt/vault/data/
+hashicorp_vault_ssl_dir: /opt/vault/tls/

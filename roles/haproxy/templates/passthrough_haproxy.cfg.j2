@@ -1,0 +1,45 @@
+global
+    log         127.0.0.1 local2
+    chroot      /var/lib/haproxy
+    pidfile     /var/run/haproxy.pid
+    maxconn     4000
+    user        haproxy
+    group       haproxy
+    daemon
+
+    # turn on stats unix socket
+    stats socket /var/lib/haproxy/stats
+
+defaults
+	log                 	global
+	retries             	3
+	timeout http-request	10s
+	timeout queue       	1m
+	timeout connect     	10s
+	timeout client      	1m
+	timeout server      	1m
+	timeout http-keep-alive 10s
+	timeout check       	10s
+	maxconn             	3000
+
+listen stats
+    bind :9000
+    mode http
+    option forwardfor       except 127.0.0.0/8
+    stats enable
+    stats uri /
+    stats refresh 3s
+
+#https
+frontend https
+   bind *:443
+   mode tcp
+   option tcplog
+   default_backend aap_https
+
+backend aap_https
+   option tcp-check
+   balance source
+{% for host in groups['aap_controller'] %}
+   server aapserver{{ loop.index }} {{ host }}:443 maxconn 100 check
+{% endfor %}

@@ -1,42 +1,42 @@
 ---
 # tasks file for hashicorp_vault
-- name: Install vault repo
+- name: Install vault RPM repo
   ansible.builtin.get_url:
     url: https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
     dest: /etc/yum.repos.d/hashicorp.repo
     owner: root
     group: root
-    mode: '0644'
+    mode: 0644
 
-- name: Install required RPMs
-  ansible.builtin.dnf:
+- name: Install required RPMs for HashiCorp Vault
+  ansible.builtin.package:
     name:
       - vault
       - python3-cryptography
     state: latest
 
-- name: Create directories for vault server storage and certs
+- name: Create directories for Vault Server storage and SSL certs
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
     recurse: true
     owner: root
     group: root
-    mode: '0770'
+    mode: 0770
   loop:
-    - /opt/vault/data/
-    - /opt/vault/tls/
+    - "{{ hashicorp_vault_data_dir }}"
+    - "{{ hashicorp_vault_ssl_dir }}"
 
 - name: Create private key (RSA, 4096 bits)
   community.crypto.openssl_privatekey:
-    path: /opt/vault/tls/vault.key
+    path: "{{ hashicorp_vault_ssl_dir }}/vault.key"
     owner: root
     group: vault
-    mode: '0640'
+    mode: 0640
 
 - name: Create certificate signing request (CSR) for self-signed certificate
   community.crypto.openssl_csr_pipe:
-    privatekey_path: /opt/vault/tls/vault.key
+    privatekey_path: "{{ hashicorp_vault_ssl_dir }}/vault.key"
     common_name: "{{ ansible_fqdn }}"
     organization_name: "{{ org_name | default('Red Hat') }}"
     subject_alt_name:
@@ -46,21 +46,21 @@
 
 - name: Create self-signed certificate from CSR
   community.crypto.x509_certificate:
-    path: /opt/vault/tls/vault.pem
-    csr_content: "{{ csr.csr }}"
-    privatekey_path: /opt/vault/tls/vault.key
+    path: "{{ hashicorp_vault_ssl_dir }}/vault.pem"
+    csr_content: "{{ csr['csr'] }}"
+    privatekey_path: "{{ hashicorp_vault_ssl_dir }}/vault.key"
     provider: selfsigned
     owner: root
     group: vault
-    mode: '0644'
+    mode: 0644
 
 - name: Create vault configuration file
   ansible.builtin.copy:
     src: vault_config.hcl
-    dest: /opt/vault/vault.hcl
+    dest: "{{ hashicorp_vault_home_dir }}/vault.hcl"
     owner: root
     group: root
-    mode: '0660'
+    mode: 0660
 
 - name: Create vault server systemd unit file
   ansible.builtin.copy:
@@ -68,7 +68,7 @@
     dest: /etc/systemd/system/vault.service
     owner: root
     group: root
-    mode: '0655'
+    mode: 0655
 
 - name: Run systemd daemon reload
   ansible.builtin.systemd:
@@ -81,26 +81,22 @@
     enabled: true
     state: restarted
 
-- name: Write VAULT_ADDR and VAULT_CACERT vars to bashrc
+- name: Write VAULT_ADDR and VAULT_CACERT vars to root bashrc
   ansible.builtin.lineinfile:
     line: "{{ item }}"
     path: /root/.bashrc
   loop:
     - export VAULT_ADDR="https://{{ ansible_fqdn }}:8200"
-    - export VAULT_CACERT="/opt/vault/tls/vault.pem"
-
-- name: Source bashrc file
-  ansible.builtin.command: bash -c 'source /root/.bashrc'
-  changed_when: false
+    - export VAULT_CACERT="{{ hashicorp_vault_ssl_dir }}vault.pem"
 
 - name: Check vault status
-  ansible.builtin.command: bash -c 'source /root/.bashrc; vault status'
+  ansible.builtin.command: bash -c "source /root/.bashrc; vault status"
   failed_when: false
   register: vault_status
 
 - name: Init the vault server and grab the keys
-  ansible.builtin.command:  bash -c 'source /root/.bashrc; vault operator init -format json'
-  when: '"Initialized        false" in vault_status.stdout_lines'
+  ansible.builtin.command:  bash -c "source /root/.bashrc; vault operator init -format json"
+  when: "'Initialized        false' in vault_status['stdout_lines']"
   register: vault_init
 
 - name: Parse output of vault init
@@ -132,7 +128,7 @@
   delegate_to: localhost
 
 - name: Unseal vault
-  ansible.builtin.shell: "source ~/.bashrc; vault operator unseal -address=https://{{ ansible_fqdn }}:8200 {{ item }}"
+  ansible.builtin.command: bash -c "source /root/.bashrc; vault operator unseal -address=https://{{ ansible_fqdn }}:8200 {{ item }}"
   loop: "{{ vault_init_parsed['unseal_keys_hex'] | flatten(levels=1) }}"
   loop_control:
     index_var: index

@@ -1,17 +1,17 @@
 ---
 # tasks file for common
-- name: Ensure SSH key directory exists
+- name: Ensure SSH directory exists
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.ssh"
+    path: "{{ ansible_env['HOME'] }}/.ssh"
     state: directory
-    mode: '0700'
+    mode: 0700
   delegate_to: localhost
   vars:
     connection: local
 
 - name: Generate SSH key pair
   ansible.builtin.user:
-    name: "{{ ansible_env.USER }}"
+    name: "{{ ansible_env['USER'] }}"
     generate_ssh_key: true
     ssh_key_bits: "{{ ssh_key_size | default(2048) }}"
   register: ssh_key_result
@@ -21,30 +21,38 @@
 
 - name: Add public key to authorized_keys
   ansible.posix.authorized_key:
-    user: "{{ ansible_env.USER }}"
-    key: "{{ ssh_key_result.ssh_public_key }}"
+    user: "{{ ansible_env['USER'] }}"
+    key: "{{ ssh_key_result['ssh_public_key'] }}"
   delegate_to: localhost
   vars:
     connection: local
 
 - name: Copy root ssh folder and contents
   ansible.builtin.copy:
-    src: "{{ ansible_env.HOME }}/.ssh/"
-    dest: "{{ ansible_env.HOME }}/"
-    owner: "{{ ansible_env.USER }}"
-    group: "{{ ansible_env.USER }}"
+    src: "{{ ansible_env['HOME'] }}/.ssh/"
+    dest: "{{ ansible_env['HOME'] }}/.ssh/"
+    owner: "{{ ansible_env['USER'] }}"
+    group: "{{ ansible_env['USER'] }}"
     directory_mode: true
     mode: "preserve"
 
 - name: Correct file permissions under ssh directory
   ansible.builtin.file:
     path: "{{ item }}"
-    owner: "{{ ansible_env.USER }}"
-    group: "{{ ansible_env.USER }}"
+    owner: "{{ ansible_env['USER'] }}"
+    group: "{{ ansible_env['USER'] }}"
     mode: "0600"
   loop:
-    - "{{ ansible_env.HOME }}/.ssh/authorized_keys"
-    - "{{ ansible_env.HOME }}/.ssh/id_rsa"
+    - "{{ ansible_env['HOME'] }}/.ssh/authorized_keys"
+    - "{{ ansible_env['HOME'] }}/.ssh/id_rsa"
+
+- name: Copy vagrant private key file to all nodes
+  ansible.builtin.copy:
+    src: "{{ vagrant_insecure_key_path | default(ansible_env['HOME'] + '/.vagrant.d/insecure_private_key') }}"
+    dest: /home/vagrant/.ssh/id_rsa
+    owner: vagrant
+    group: vagrant
+    mode: 0400
 
 - name: Delete line starting with 127.0.1.1
   ansible.builtin.lineinfile:
