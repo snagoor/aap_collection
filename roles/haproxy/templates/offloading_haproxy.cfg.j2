@@ -31,7 +31,7 @@ defaults
     timeout     check           10s
 
 frontend    aap_https_frontend
-    bind    *:443   ssl  crt    /etc/pki/tls/private/aap.pem
+    bind    *:443   ssl  crt    /etc/pki/tls/private/{{ ansible_hostname }}.pem
     default_backend     aap_http
 
 backend aap_http

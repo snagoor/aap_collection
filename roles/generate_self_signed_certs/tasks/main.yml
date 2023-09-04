@@ -33,7 +33,7 @@
   community.crypto.x509_certificate:
     path: "{{ ssl_certs_path }}/{{ ansible_hostname }}.crt"
     csr_content: "{{ cert_csr['csr'] }}"
-    privatekey_path: "{{ ssl_certs_path }}{{ ansible_hostname }}.key"
+    privatekey_path: "{{ ssl_certs_path }}/{{ ansible_hostname }}.key"
     provider: selfsigned
     owner: root
     group: root
