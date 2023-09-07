@@ -28,7 +28,7 @@
 
 - name: Generate Red Hat SSO standalone configuration
   ansible.builtin.template:
-    src: standalone.xml
+    src: standalone.xml.j2
     dest: /opt/rh/rh-sso7/root/usr/share/keycloak/standalone/configuration/standalone.xml
     owner: root
     group: root
