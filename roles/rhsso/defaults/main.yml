@@ -1,0 +1,17 @@
+---
+# defaults file for rhsso
+rhsso_repos:
+  - "jb-eap-7.4-for-rhel-8-x86_64-rpms"
+  - "rh-sso-7.6-for-rhel-8-x86_64-rpms"
+rhsso_admin_user: "admin"
+rhsso_admin_password: "changeme"
+rhsso_ssl_country: "IN"
+rhsso_ssl_org: "Red Hat"
+rhsso_ssl_ou: "GSS"
+rhsso_ssl_state: "Maharashtra"
+rhsso_ssl_location: "Pune"
+rhsso_ssl_keysize: 4096
+rhsso_ssl_password: "changeme"
+rhsso_ssl_validity: 3650
+rhsso_dest_store_type: "pkcs12"
+rhsso_bind_ip: "0.0.0.0"

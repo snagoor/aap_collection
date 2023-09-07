@@ -1,0 +1,7 @@
+---
+# handlers file for rhsso
+- name: restart rhsso service
+  ansible.builtin.service:
+    name: rhsso
+    state: restarted
+    enabled: true
