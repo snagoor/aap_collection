@@ -2,29 +2,73 @@
 # tasks file for rhsso
 - name: Enable required repos for Red Hat SSO installation
   community.general.rhsm_repository:
-    name: "{{ item }}"
-  loop: "{{ rhsso_repos }}"
+    name: "{{ rhsso_repos }}"
 
 - name: Install rhsso package group
   ansible.builtin.dnf:
     name: "@rh-sso7"
     state: present
 
+- name: Check if private key exists
+  ansible.builtin.stat:
+    path: "{{ rhsso_ssl_path }}/{{ ansible_hostname }}.key"
+  register: key_file
+
+- name: Check if certificate file exists
+  ansible.builtin.stat:
+    path: "{{ rhsso_ssl_path }}/{{ ansible_hostname }}.key"
+  register: cert_file
+
+- name: Create private key for self-signed certificate
+  community.crypto.openssl_privatekey:
+    path: "{{ rhsso_ssl_path }}/{{ ansible_hostname }}.key"
+  when: not key_file['stat']['exists']
+
+- name: Create certificate signing request (CSR)
+  community.crypto.openssl_csr_pipe:
+    privatekey_path: "{{ rhsso_ssl_path }}/{{ ansible_hostname }}.key"
+    common_name: "{{ ansible_fqdn }}"
+    use_common_name_for_san: true
+    basic_constraints_critical: true
+    key_usage:
+      - keyCertSign
+    key_usage_critical: true
+  register: cert_csr
+  when: not cert_file['stat']['exists']
+
+- name: Create self-signed SSL certificate from CSR
+  community.crypto.x509_certificate:
+    path: "{{ rhsso_ssl_path }}/{{ ansible_hostname }}.crt"
+    csr_content: "{{ cert_csr['csr'] }}"
+    privatekey_path: "{{ rhsso_ssl_path }}/{{ ansible_hostname }}.key"
+    provider: selfsigned
+    owner: root
+    group: root
+    mode: 0644
+  when: not cert_file['stat']['exists']
+
 - name: Check existense of Red Hat SSO Java KeyStore file
   ansible.builtin.stat:
     path: /opt/rh/rh-sso7/root/usr/share/keycloak/standalone/configuration/rhsso.jks
-  register: keystore_file
+  register: jks_file
 
-- name: Generate HTTPS for the Red Hat SSO server
+- name: Convert Cert and Key to p12 format
   ansible.builtin.command: >
-    keytool -genkey -alias {{ ansible_fqdn }}
-    -keyalg RSA -keystore /opt/rh/rh-sso7/root/usr/share/keycloak/standalone/configuration/rhsso.jks
-    -dname "CN={{ ansible_fqdn }}, OU={{ rhsso_ssl_ou |default ('IT') }}, O={{ rhsso_ssl_org | default('Red Hat') }},
-    L={{ rhsso_ssl_location | default('Pune') }}, S={{ rhsso_ssl_state | default('Maharashtra') }}, C={{ rhsso_ssl_country | default('IN') }}"
-    -keypass {{ rhsso_ssl_password }} -storepass {{ rhsso_ssl_password }}
-    -validity {{ rhsso_ssl_validity | default('3650') }} -deststoretype {{ rhsso_dest_store_type | default('pkcs12') }}
-    -keysize {{ rhsso_ssl_keysize | default('4096') }}
-  when: not keystore_file['stat']['exists']
+    openssl {{ rhsso_ssl_type }} -export -in {{ rhsso_ssl_path }}/{{ ansible_hostname }}.crt
+    -inkey {{ rhsso_ssl_path }}/{{ ansible_hostname }}.key
+    -out {{ rhsso_ssl_path }}/{{ ansible_hostname }}.p12
+    -passout pass:{{ rhsso_ssl_password }}
+  no_log: true
+  when: not jks_file['stat']['exists']
+
+- name: Convert p12 cert file to JKS format
+  ansible.builtin.command: >
+    keytool -importkeystore -srckeystore {{ rhsso_ssl_path }}/{{ ansible_hostname }}.p12
+    -srcstoretype {{ rhsso_ssl_type }} -srcstorepass {{ rhsso_ssl_password }}
+    -destkeystore /opt/rh/rh-sso7/root/usr/share/keycloak/standalone/configuration/rhsso.jks
+    -deststoretype {{ rhsso_ssl_type }} -deststorepass {{ rhsso_ssl_password }}
+  no_log: true
+  when: not jks_file['stat']['exists']
 
 - name: Generate Red Hat SSO standalone configuration
   ansible.builtin.template:
@@ -40,24 +84,10 @@
     line: "export PATH=$PATH:/opt/rh/rh-sso7/root/usr/share/keycloak/bin"
     dest: "{{ ansible_env['HOME'] }}/.bashrc"
 
-- name: Check existense of user authentication file
-  ansible.builtin.stat:
-    path: /opt/rh/rh-sso7/root/usr/share/keycloak/standalone/configuration/keycloak-add-user.json
-  register: rhsso_users_file
-
-- name: Check if user exists in authentication file
-  ansible.builtin.command: >
-    bash -c "grep {{ rhsso_admin_user | default('admin') }} /opt/rh/rh-sso7/root/usr/share/keycloak/standalone/configuration/keycloak-add-user.json"
-  register: check_rhsso_user
-  when: rhsso_users_file['stat']['exists']
-
 - name: Create admin user
   ansible.builtin.command: >
-    bash -c "source {{ ansible_env['HOME'] }}/.bashrc; add-user-keycloak.sh -u {{ rhsso_admin_user | default('admin') }} -p {{ rhsso_admin_password }}"
+    bash -c "source {{ ansible_env['HOME'] }}/.bashrc; add-user-keycloak.sh -u {{ rhsso_admin_user }} -p {{ rhsso_admin_password }}"
   no_log: true
-  when: >
-    ((not rhsso_users_file['stat']['exists']) or
-    (check_rhsso_user is defined and check_rhsso_user['rc'] != 0))
 
 - name: Create Red Hat SSO systemd service configuration file
   ansible.builtin.template:
