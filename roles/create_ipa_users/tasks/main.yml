@@ -1,0 +1,18 @@
+---
+# tasks file for create_ipa_users
+- name: Calculate future expiry date
+  ansible.builtin.set_fact:
+    krb_expiry_date: "{{ ansible_date_time['year']|int + validity_years|default(10) }}{{ ansible_date_time['month'] }}{{ ansible_date_time['day'] }}{{ ansible_date_time['hour'] }}{{ ansible_date_time['minute'] }}{{ ansible_date_time['second'] }}"
+
+- name: Create FreeIPA users
+  community.general.ipa_user:
+    name: "{{ item['name'] }}"
+    state: present
+    password: "{{ item['password'] }}"
+    krbpasswordexpiration: "{{ krb_expiry_date }}"
+    givenname: "{{ item['firstname'] }}"
+    sn: "{{ item['lastname'] }}"
+    ipa_host: "{{ ldap_hostname | default(ansible_fqdn) }}"
+    ipa_user: "{{ ldap_username }}"
+    ipa_pass: "{{ ldap_password }}"
+  loop: "{{ ldap_users }}"

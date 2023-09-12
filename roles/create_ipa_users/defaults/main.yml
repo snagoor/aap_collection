@@ -1,0 +1,19 @@
+---
+# defaults file for create_ipa_users
+ldap_users:
+  - name: nshaik
+    password: "RedHat1!"
+    firstname: Nagoor
+    lastname: Shaik
+  - name: jdoe
+    password: "RedHat1!"
+    firstname: John
+    lastname: Doe
+  - name: bwalsh
+    password: "RedHat1!"
+    firstname: Bob
+    lastname: Walsh
+validity_years: 10
+ldap_hostname: "ldap.example.com"
+ldap_username: "admin"
+ldap_password: "RedHat1!"
