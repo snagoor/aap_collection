@@ -58,6 +58,7 @@
     -inkey {{ rhsso_ssl_path }}/{{ ansible_hostname }}.key
     -out {{ rhsso_ssl_path }}/{{ ansible_hostname }}.p12
     -passout pass:{{ rhsso_ssl_password }}
+    -name {{ ansible_hostname }}
   no_log: true
   when: not jks_file['stat']['exists']
 
