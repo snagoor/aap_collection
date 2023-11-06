@@ -38,13 +38,15 @@ listen stats
     stats uri /
     stats refresh 3s
 
-frontend    aap_https_frontend
-    bind    *:443   ssl  crt    /etc/pki/tls/private/{{ ansible_hostname }}.pem
-    default_backend     aap_http
+frontend aap_https_frontend
+    bind *:80
+    bind *:443 ssl crt /etc/pki/tls/private/{{ ansible_hostname }}.pem
+    http-request redirect scheme https code 301 unless { ssl_fc }
+    default_backend aap_http
 
 backend aap_http
-    mode    http
-    option  forwardfor
+    mode http
+    option forwardfor
 {% for host in groups['aap_controller'] %}
-    server  aapserver{{ loop.index }}  {{ hostvars[host]['ansible_eth1']['ipv4']['address'] }}:80 maxconn 100 check
+    server aapserver{{ loop.index }} {{ hostvars[host]['ansible_eth1']['ipv4']['address'] }}:80 maxconn 100 check
 {% endfor %}

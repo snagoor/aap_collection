@@ -60,6 +60,16 @@
     state: absent
     regexp: '^127\.0\.1\.1'
 
+- name: Set hostname
+  ansible.builtin.hostname:
+    name: "{{ lookup('community.general.dig', ''~ansible_eth1['ipv4']['address']~'/PTR', '@' + dns_server) }}"
+  when: "'localhost' in ansible_nodename"
+  register: set_hostname
+
+- name: Force gather facts
+  ansible.builtin.setup:
+  when: set_hostname['changed']
+
 - name: Generate /etc/hosts entries
   ansible.builtin.template:
     dest: /etc/hosts

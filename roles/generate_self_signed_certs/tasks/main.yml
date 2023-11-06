@@ -24,9 +24,15 @@
     common_name: "{{ ansible_fqdn }}"
     use_common_name_for_san: true
     basic_constraints_critical: true
+    basic_constraints:
+      - 'CA:TRUE'
     key_usage:
-      - keyCertSign
+      - digitalSignature
+      - keyEncipherment
     key_usage_critical: true
+    extendedKeyUsage:
+      - clientAuth
+      - serverAuth
   register: cert_csr
 
 - name: Create self-signed SSL certificate from CSR

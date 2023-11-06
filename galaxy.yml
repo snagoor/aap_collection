@@ -1,6 +1,6 @@
 namespace: nshaik
 name: aap_collection
-version: 1.0.14
+version: 1.0.15
 readme: README.md
 authors:
   - Nagoor Shaik <nagoor.s@gmail.com>
