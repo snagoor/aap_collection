@@ -29,14 +29,14 @@
 
 - name: Create private key (RSA, 4096 bits)
   community.crypto.openssl_privatekey:
-    path: "{{ hashicorp_vault_ssl_dir }}/vault.key"
+    path: "{{ hashicorp_vault_ssl_dir }}/vault_ca.key"
     owner: root
     group: vault
     mode: 0640
 
 - name: Create certificate signing request (CSR) for self-signed certificate
   community.crypto.openssl_csr_pipe:
-    privatekey_path: "{{ hashicorp_vault_ssl_dir }}/vault.key"
+    privatekey_path: "{{ hashicorp_vault_ssl_dir }}/vault_ca.key"
     common_name: "{{ ansible_fqdn }}"
     organization_name: "{{ org_name | default('Red Hat') }}"
     subject_alt_name:
@@ -46,9 +46,9 @@
 
 - name: Create self-signed certificate from CSR
   community.crypto.x509_certificate:
-    path: "{{ hashicorp_vault_ssl_dir }}/vault.pem"
+    path: "{{ hashicorp_vault_ssl_dir }}/vault_ca.pem"
     csr_content: "{{ csr['csr'] }}"
-    privatekey_path: "{{ hashicorp_vault_ssl_dir }}/vault.key"
+    privatekey_path: "{{ hashicorp_vault_ssl_dir }}/vault_ca.key"
     provider: selfsigned
     owner: root
     group: vault
@@ -81,13 +81,14 @@
     enabled: true
     state: restarted
 
-- name: Write VAULT_ADDR and VAULT_CACERT vars to root bashrc
+- name: Write VAULT vars to bashrc
   ansible.builtin.lineinfile:
     line: "{{ item }}"
     path: /root/.bashrc
   loop:
     - export VAULT_ADDR="https://{{ ansible_fqdn }}:8200"
-    - export VAULT_CACERT="{{ hashicorp_vault_ssl_dir }}vault.pem"
+    - export VAULT_CACERT="{{ hashicorp_vault_ssl_dir }}vault_ca.pem"
+    - export VAULT_TOKEN="{{ vault_init_parsed['root_token'] | quote }}"
 
 - name: Check vault status
   ansible.builtin.command: bash -c "source /root/.bashrc; vault status"
