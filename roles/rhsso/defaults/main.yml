@@ -1,6 +1,6 @@
 ---
 # defaults file for rhsso
-rhsso_repos: "rh-sso-7.6-for-rhel-9-x86_64-rpms"
+rhsso_repos: "rh-sso-7.6-for-rhel-{{ ansible_distribution_major_version }}-x86_64-rpms"
 rhsso_admin_user: "admin"
 rhsso_admin_password: "RedHat1!"
 rhsso_ssl_password: "RedHat1!"
