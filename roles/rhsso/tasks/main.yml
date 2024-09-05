@@ -9,6 +9,11 @@
     name: "@rh-sso7"
     state: present
 
+- name: Install python3-cryptography rpm
+  ansible.builtin.dnf:
+    name: "python3-cryptography"
+    state: present
+
 - name: Check if private key exists
   ansible.builtin.stat:
     path: "{{ rhsso_ssl_path }}/{{ ansible_hostname }}.key"
@@ -44,7 +49,7 @@
     provider: selfsigned
     owner: root
     group: root
-    mode: 0644
+    mode: "0644"
   when: not cert_file['stat']['exists']
 
 - name: Check existense of Red Hat SSO Java KeyStore file
@@ -77,7 +82,7 @@
     dest: /opt/rh/rh-sso7/root/usr/share/keycloak/standalone/configuration/standalone.xml
     owner: root
     group: root
-    mode: 0644
+    mode: "0644"
   notify: restart rhsso service
 
 - name: Add Red Hat SSO bin directory to PATH variable
@@ -96,12 +101,12 @@
     dest: /etc/systemd/system/rhsso.service
     owner: root
     group: root
-    mode: 0644
+    mode: "0644"
   register: rhsso_service_file
 
 - name: Reload systemd configuration
   ansible.builtin.systemd:
-    daemon_reload: yes
+    daemon_reload: true
   when: rhsso_service_file['changed']
 
 - name: Start and Enable Red Hat SSO service
