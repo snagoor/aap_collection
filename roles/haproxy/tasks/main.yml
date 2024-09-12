@@ -1,7 +1,7 @@
 ---
 # tasks file for haproxy
 - name: Install HAProxy package
-  ansible.builtin.package:
+  ansible.builtin.dnf:
     name: haproxy
     state: present
     update_cache: true
@@ -14,13 +14,13 @@
 
 - name: Copy HAProxy configuration file
   ansible.builtin.template:
-    src: "{{ (lb_server_offloading | default(true)) | ternary('offloading_haproxy.cfg.j2','passthrough_haproxy.cfg.j2') }}"
+    src: "{{ (lb_server_offloading | default(true)) | ternary('offloading_haproxy.cfg.j2', 'passthrough_haproxy.cfg.j2') }}"
     dest: /etc/haproxy/haproxy.cfg
     owner: root
     group: root
-    mode: 0644
+    mode: "0644"
     validate: haproxy -c -f %s
-  notify: restart haproxy service
+  notify: Restart HAProxy Service
 
 - name: Start and Enable HAProxy Service
   ansible.builtin.service:

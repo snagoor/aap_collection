@@ -1,8 +1,17 @@
 ---
 # tasks file for create_ipa_users
+- name: Set local variables
+  ansible.builtin.set_fact:
+    cert_year: "{{ ansible_date_time['year'] | int + validity_years | default(10) }}"
+    cert_month: "{{ ansible_date_time['month'] }}"
+    cert_day: "{{ ansible_date_time['day'] }}"
+    cert_hour: "{{ ansible_date_time['hour'] }}"
+    cert_minute: "{{ ansible_date_time['minute'] }}"
+    cert_second: "{{ ansible_date_time['second'] }}"
+
 - name: Calculate future expiry date
   ansible.builtin.set_fact:
-    krb_expiry_date: "{{ ansible_date_time['year']|int + validity_years|default(10) }}{{ ansible_date_time['month'] }}{{ ansible_date_time['day'] }}{{ ansible_date_time['hour'] }}{{ ansible_date_time['minute'] }}{{ ansible_date_time['second'] }}"
+    krb_expiry_date: "{{ cert_year }}{{ cert_month }}{{ cert_day }}{{ cert_hour }}{{ cert_minute }}{{ cert_second }}"
 
 - name: Create FreeIPA users
   community.general.ipa_user:

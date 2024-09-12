@@ -6,14 +6,14 @@
     dest: /etc/yum.repos.d/hashicorp.repo
     owner: root
     group: root
-    mode: 0644
+    mode: "0644"
 
 - name: Install required RPMs for HashiCorp Vault
-  ansible.builtin.package:
+  ansible.builtin.dnf:
     name:
       - vault
       - python3-cryptography
-    state: latest
+    state: present
 
 - name: Create directories for Vault Server storage and SSL certs
   ansible.builtin.file:
@@ -22,7 +22,7 @@
     recurse: true
     owner: root
     group: root
-    mode: 0770
+    mode: "0770"
   loop:
     - "{{ hashicorp_vault_data_dir }}"
     - "{{ hashicorp_vault_ssl_dir }}"
@@ -30,9 +30,10 @@
 - name: Create private key (RSA, 4096 bits)
   community.crypto.openssl_privatekey:
     path: "{{ hashicorp_vault_ssl_dir }}/vault_ca.key"
+    size: 4096
     owner: root
     group: vault
-    mode: 0640
+    mode: "0640"
 
 - name: Create certificate signing request (CSR) for self-signed certificate
   community.crypto.openssl_csr_pipe:
@@ -52,7 +53,7 @@
     provider: selfsigned
     owner: root
     group: vault
-    mode: 0644
+    mode: "0644"
 
 - name: Create vault configuration file
   ansible.builtin.copy:
@@ -60,7 +61,7 @@
     dest: "{{ hashicorp_vault_home_dir }}/vault.hcl"
     owner: root
     group: root
-    mode: 0660
+    mode: "0660"
 
 - name: Create vault server systemd unit file
   ansible.builtin.copy:
@@ -68,7 +69,7 @@
     dest: /etc/systemd/system/vault.service
     owner: root
     group: root
-    mode: 0655
+    mode: "0655"
 
 - name: Run systemd daemon reload
   ansible.builtin.systemd:
@@ -96,7 +97,7 @@
   register: vault_status
 
 - name: Init the vault server and grab the keys
-  ansible.builtin.command:  bash -c "source /root/.bashrc; vault operator init -format json"
+  ansible.builtin.command: bash -c "source /root/.bashrc; vault operator init -format json"
   when: "'Initialized        false' in vault_status['stdout_lines']"
   register: vault_init
 
@@ -111,6 +112,9 @@
   ansible.builtin.copy:
     dest: "unseal_key_{{ index }}"
     content: "{{ item }}"
+    owner: root
+    group: root
+    mode: "0660"
   loop: "{{ vault_init_parsed['unseal_keys_hex'] | flatten(levels=1) }}"
   loop_control:
     index_var: index
@@ -123,6 +127,9 @@
   ansible.builtin.copy:
     content: "{{ vault_init_parsed['root_token'] }}"
     dest: "root_token_key"
+    owner: root
+    group: root
+    mode: "0660"
   when:
     - vault_init is defined
     - vault_init['changed']

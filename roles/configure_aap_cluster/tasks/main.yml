@@ -10,8 +10,8 @@
     dest: /etc/tower/conf.d/custom.py
     owner: root
     group: awx
-    mode: 0640
-  notify: restart aap services
+    mode: "0640"
+  notify: Restart AAP Service
 
 - name: Configure AAP remote host headers
   awx.awx.settings:

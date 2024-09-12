@@ -5,13 +5,13 @@
     manager: auto
 
 - name: Installing RHEL8 IDM server module
-  ansible.builtin.package:
+  ansible.builtin.dnf:
     name: "@idm:DL1/server"
     state: present
   when: ansible_distribution_major_version is version('8', '=')
 
 - name: Installing RHEL8 IDM DNS module
-  ansible.builtin.package:
+  ansible.builtin.dnf:
     name: "@idm:DL1/dns"
     state: present
   when:
@@ -19,18 +19,18 @@
     - ansible_distribution_major_version is version('8', '=')
 
 - name: Installing required packages for FreeIPA Server
-  ansible.builtin.package:
+  ansible.builtin.dnf:
     name: "{{ freeipa_packages }}"
     state: present
 
 - name: Installing FreeIPA DNS packages
-  ansible.builtin.package:
+  ansible.builtin.dnf:
     name: "{{ freeipa_dns_packages }}"
     state: present
   when: freeipa_setup_dns
 
 - name: Ensure time is properly synced
-  ansible.builtin.command: bash -c "chronyd -Q -d 'server {{ time_source }} iburst'"
+  ansible.builtin.command: bash -c "chronyd -Q -d 'server {{ freeipa_time_source }} iburst'"
   changed_when: false
 
 - name: Generating entropy using rngd utility
@@ -41,7 +41,7 @@
   ansible.builtin.service:
     name: "chronyd"
     state: started
-    enabled: yes
+    enabled: true
 
 - name: Allowing required ports in firewalld
   ansible.posix.firewalld:
@@ -49,7 +49,7 @@
     permanent: true
     immediate: true
     state: enabled
-  loop: "{{ firewalld_services }}"
+  loop: "{{ freeipa_firewalld_services }}"
   when: "'firewalld' in ansible_facts['packages']"
 
 - name: Allow DNS service in firewalld
@@ -74,7 +74,7 @@
   register: uninstall_ipa
   when: force_uninstall_ipa and ipa_installation.rc == 0
 
-- name: Running the ipa-server-install
+- name: Install FreeIPA
   ansible.builtin.command: >
     ipa-server-install
     --unattended
@@ -88,10 +88,10 @@
     {{ '--idstart=' + freeipa_idstart if freeipa_idstart is defined }}
     {{ '--idmax=' + freeipa_idmax if freeipa_idmax is defined }}
     {{ '--setup-dns --auto-reverse --allow-zone-overlap --forward-policy first' if freeipa_setup_dns }}
-    {{ dns_zone_manager if freeipa_dns_zone_mgr is defined }}
+    {{ freeipa_dns_zone_manager if freeipa_dns_zone_mgr is defined }}
     {{ '--no-ntp' if not freeipa_setup_ntp }}
-    {% if freeipa_setup_dns and freeipa_dns_forwarder|default([])|length %}
-      {% for i in range(0,(freeipa_dns_forwarder|length)) %}
+    {% if freeipa_setup_dns and freeipa_dns_forwarder | default([]) | length %}
+      {% for i in range(0, (freeipa_dns_forwarder | length)) %}
       --forwarder={{ freeipa_dns_forwarder[i] }}
       {% endfor %}
     {% else %}

@@ -4,10 +4,10 @@
   ansible.builtin.file:
     path: "{{ ansible_env['HOME'] }}/.ssh"
     state: directory
-    mode: 0700
+    mode: "0700"
   delegate_to: localhost
   vars:
-    connection: local
+    ansible_connection: local
 
 - name: Generate SSH key pair
   ansible.builtin.user:
@@ -17,7 +17,7 @@
   register: ssh_key_result
   delegate_to: localhost
   vars:
-    connection: local
+    ansible_connection: local
 
 - name: Add public key to authorized_keys
   ansible.posix.authorized_key:
@@ -25,7 +25,7 @@
     key: "{{ ssh_key_result['ssh_public_key'] }}"
   delegate_to: localhost
   vars:
-    connection: local
+    ansible_connection: local
 
 - name: Copy root ssh folder and contents
   ansible.builtin.copy:
@@ -52,7 +52,7 @@
     dest: /home/vagrant/.ssh/id_rsa
     owner: vagrant
     group: vagrant
-    mode: 0400
+    mode: "0400"
 
 - name: Delete line starting with 127.0.1.1
   ansible.builtin.lineinfile:

@@ -4,12 +4,12 @@ freeipa_domain_name: "{{ ansible_domain }}"
 freeipa_realm_name: "{{ freeipa_domain_name | upper }}"
 freeipa_dm_password: "RedHat1!"
 freeipa_admin_password: "RedHat1!"
-freeipa_setup_ntp: True
+freeipa_setup_ntp: true
 freeipa_idstart: '61000'
 freeipa_idmax: '200000'
-freeipa_setup_dns: True
-dns_zone_manager: "root@{{ freeipa_domain_name }}"
-time_source: 'clock.redhat.com'
+freeipa_setup_dns: true
+freeipa_dns_zone_manager: "root@{{ freeipa_domain_name }}"
+freeipa_time_source: "clock.redhat.com"
 freeipa_packages:
   - rng-tools
   - bind-utils
@@ -21,7 +21,7 @@ freeipa_dns_packages:
   - bind-dyndb-ldap
   - ipa-server-dns
   - bind-utils
-firewalld_services:
+freeipa_firewalld_services:
   - https
   - ldaps
   - kerberos
@@ -29,4 +29,4 @@ firewalld_services:
   - ntp
   - freeipa-ldaps
   - freeipa-ldap
-force_uninstall_ipa: False
+freeipa_force_uninstall: false

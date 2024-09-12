@@ -1,7 +1,7 @@
 ---
 # tasks file for generate_self_signed_certs
 - name: Ensure python cryptography package is installed
-  ansible.builtin.package:
+  ansible.builtin.dnf:
     name: python3-cryptography
     state: present
 
@@ -12,7 +12,7 @@
     recurse: true
     owner: root
     group: root
-    mode: 0755
+    mode: "0755"
 
 - name: Create private key
   community.crypto.openssl_privatekey:
@@ -25,7 +25,7 @@
     use_common_name_for_san: true
     basic_constraints_critical: true
     basic_constraints:
-      - 'CA:TRUE'
+      - "CA:TRUE"
     key_usage:
       - digitalSignature
       - keyEncipherment
@@ -43,7 +43,7 @@
     provider: selfsigned
     owner: root
     group: root
-    mode: 0644
+    mode: "0644"
 
 - name: Find cert and key files
   ansible.builtin.find:
@@ -76,5 +76,5 @@
   loop_control:
     label: "{{ item['source'] }}"
 
-- name: Remove empty lines from the file
+- name: Remove empty lines from the certificate file
   ansible.builtin.command: bash -c "sed -i '/^$/d' /etc/pki/tls/private/{{ ansible_hostname }}.pem"

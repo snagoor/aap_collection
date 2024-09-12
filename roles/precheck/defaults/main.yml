@@ -1,12 +1,12 @@
 ---
 # defaults file for precheck
 # AAP Compatability Matrix dictionary
-supported_versions:
-  '8':
-    - '2.1'
-    - '2.2'
-    - '2.3'
-    - '2.4'
-  '9':
-    - '2.3'
-    - '2.4'
+precheck_aap_versions:
+  "8":
+    - "2.1"
+    - "2.2"
+    - "2.3"
+    - "2.4"
+  "9":
+    - "2.3"
+    - "2.4"

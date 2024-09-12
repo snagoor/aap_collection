@@ -1,3 +1,3 @@
 ---
-- name: restart aap services
+- name: Restart AAP Service
   ansible.builtin.command: automation-controller-service restart
