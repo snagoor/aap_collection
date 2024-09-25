@@ -1,0 +1,109 @@
+---
+# tasks file for keycloak
+- name: Ensure the Keycloak base path exists
+  ansible.builtin.file:
+    path: "{{ (keycloak_home_directory | regex_replace('/[^/]+/?$', '/') }}"
+    state: directory
+    recurse: true
+    owner: root
+    group: root
+    mode: "0775"
+
+- name: Install required packages for Keycloak installation
+  ansible.builtin.dnf:
+    name: "{{ keycloak_dependencies }}"
+    state: present
+
+- name: Download and Unzip Keycloak bundle
+  ansible.builtin.unarchive:
+    src: "{{ keycloak_zip_file_path }}"
+    dest: "{{ (keycloak_home_directory | regex_replace('/[^/]+/?$', '/') }}"
+    remote_src: true
+    owner: root
+    group: root
+
+- name: Create Keycloak SSL directory
+  ansible.builtin.file:
+    path: "{{ keycloak_home_directory }}/ssl"
+    state: directory
+    recurse: true
+    owner: root
+    group: root
+    mode: "0775"
+
+- name: Check if private key exists
+  ansible.builtin.stat:
+    path: "{{ keycloak_home_directory }}/ssl/{{ ansible_hostname }}.key"
+  register: key_file
+
+- name: Check if certificate file exists
+  ansible.builtin.stat:
+    path: "{{ keycloak_home_directory }}/ssl/{{ ansible_hostname }}.key"
+  register: cert_file
+
+- name: Create private key for self-signed certificate
+  community.crypto.openssl_privatekey:
+    path: "{{ keycloak_home_directory }}/ssl/{{ ansible_hostname }}.key"
+  when: not key_file['stat']['exists']
+
+- name: Create certificate signing request (CSR)
+  community.crypto.openssl_csr_pipe:
+    privatekey_path: "{{ keycloak_home_directory }}/ssl/{{ ansible_hostname }}.key"
+    common_name: "{{ ansible_fqdn }}"
+    use_common_name_for_san: true
+    basic_constraints_critical: true
+    key_usage:
+      - keyCertSign
+      - digitalSignature
+      - keyEncipherment
+    key_usage_critical: true
+  register: cert_csr
+  when: not cert_file['stat']['exists']
+
+- name: Create self-signed SSL certificate from CSR
+  community.crypto.x509_certificate:
+    path: "{{ keycloak_home_directory }}/ssl/{{ ansible_hostname }}.crt"
+    csr_content: "{{ cert_csr['csr'] }}"
+    privatekey_path: "{{ keycloak_home_directory }}/ssl/{{ ansible_hostname }}.key"
+    provider: selfsigned
+    owner: root
+    group: root
+    mode: "0644"
+  when: not cert_file['stat']['exists']
+
+- name: Generate Keycloak configuration file
+  ansible.builtin.template:
+    src: keycloak.conf.j2
+    dest: "{{ keycloak_home_directory }}/conf/keycloak.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart keycloak service
+
+- name: Create keycloak environment file
+  ansible.builtin.template:
+    src: keycloak_env_vars.j2
+    dest: /etc/sysconfig/keycloak
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Create keycloak systemd service configuration file
+  ansible.builtin.template:
+    src: keycloak.service.j2
+    dest: /etc/systemd/system/keycloak.service
+    owner: root
+    group: root
+    mode: "0644"
+  register: keycloak_service_file
+
+- name: Reload systemd configuration
+  ansible.builtin.systemd:
+    daemon_reload: true
+  when: keycloak_service_file['changed']
+
+- name: Start and Enable Red Hat Keycloak service
+  ansible.builtin.service:
+    name: keycloak
+    state: started
+    enabled: true

@@ -1,0 +1,7 @@
+---
+# tasks file for rhsm
+- name: Register system to Red Hat Customer Portal or Satellite
+  community.general.redhat_subscription:
+    org_id: "{{ rhsm_org_id }}"
+    activationkey: "{{ rhsm_ak_name }}"
+    state: present

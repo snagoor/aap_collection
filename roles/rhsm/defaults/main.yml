@@ -1,0 +1,4 @@
+---
+# defaults file for rhsm
+rhsm_org_id: ""
+rhsm_ak_name: ""

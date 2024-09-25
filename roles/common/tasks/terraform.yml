@@ -1,0 +1,10 @@
+---
+- name: Force gather facts
+  ansible.builtin.setup:
+
+- name: Generate /etc/hosts entries
+  ansible.builtin.template:
+    dest: /etc/hosts
+    src: "{{ slug }}_hosts.j2"
+    mode: "0644"
+  loop: "{{ groups['all'] }}"

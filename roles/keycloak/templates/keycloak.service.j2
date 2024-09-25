@@ -1,0 +1,14 @@
+[Unit]
+Description=Red Hat build of Keycloak SystemD service
+After=network.target
+
+[Service]
+Type=idle
+WorkingDirectory={{ keycloak_home_directory }}
+ExecStart={{ keycloak_home_directory }}/bin/kc.sh start
+Restart=on-abort
+EnvironmentFile=/etc/sysconfig/keycloak
+ExecStartPost=/bin/sleep 30
+
+[Install]
+WantedBy=multi-user.target

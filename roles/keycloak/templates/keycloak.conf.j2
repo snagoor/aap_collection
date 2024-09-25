@@ -1,0 +1,4 @@
+hostname={{ ansible_fqdn }}
+https-certificate-file={{ keycloak_home_directory }}/ssl/{{ ansible_hostname }}.crt
+https-certificate-key-file={{ keycloak_home_directory }}/ssl/{{ ansible_hostname }}.key
+https-port=443

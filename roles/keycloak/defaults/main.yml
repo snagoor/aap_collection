@@ -1,0 +1,9 @@
+# defaults file for keycloak
+keycloak_admin_username: "admin"
+keycloak_admin_password: "P@ssw0rd"
+keycloak_home_directory: "/opt/keycloak"
+keycloak_zip_file_path: "http://content.example.com/keycloak.zip"
+keycloak_dependencies:
+  - java-17-openjdk
+  - python3-cryptography
+  - unzip

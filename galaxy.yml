@@ -1,13 +1,13 @@
 namespace: nshaik
 name: aap_collection
-version: 1.0.16
+version: 1.0.18
 readme: README.md
 authors:
   - Nagoor Shaik <nagoor.s@gmail.com>
 description: Common customized roles to support AAP installation
 license:
   - GPL-2.0-or-later
-license_file: ''
+license_file: ""
 tags:
   - common
   - aap2
@@ -17,11 +17,11 @@ dependencies:
   "community.crypto": ">=2.15.1"
   "community.general": ">=7.3.0"
 # The URL of the originating SCM repository
-repository: https://github.com/snagoor/aap_common
+repository: https://github.com/snagoor/aap_collection
 # The URL to any online docs
-documentation: https://github.com/snagoor/aap_common
+documentation: https://github.com/snagoor/aap_collection
 # The URL to the homepage of the collection/project
-homepage: https://github.com/snagoor/aap_common
+homepage: https://github.com/snagoor/aap_collection
 # The URL to the collection issue tracker
-issues: https://github.com/snagoor/aap_common/issue/tracker
+issues: https://github.com/snagoor/aap_collection/issue/tracker
 build_ignore: []

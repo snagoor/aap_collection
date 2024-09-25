@@ -1,0 +1,7 @@
+---
+# handlers file for keycloak
+- name: Restart Keycloak Service
+  ansible.builtin.service:
+    name: keycloak
+    state: restarted
+    enabled: true
