@@ -1,15 +1,19 @@
 ---
 # tasks file for precheck
-- name: AAP OS Compatability Check
+- name: Ansible Automation Platform OS Compatability Check
   ansible.builtin.assert:
     that:
-      - "{{ (aap_setup_rhel_version in precheck_aap_versions.keys()) }}"
-    fail_msg: "Only Red Hat Enterprise Linux {{ precheck_aap_versions.keys() | list | join(' and ') }} are supported Operating Systems to run AAP2"
+      - aap_setup_rhel_version in precheck_aap_versions | list
+    fail_msg: >-
+      Only Red Hat Enterprise Linux {{ precheck_aap_versions | list | join(' and ') }} are supported Operating Systems to run
+      Red Hat Ansible Automation Platform
     quiet: true
 
-- name: AAP Version Compatability Check
+- name: Ansible Automation Platform Version Compatability Check
   ansible.builtin.assert:
     that:
-      - "{{ (aap_setup_rhel_version in precheck_aap_versions.keys() and aap_setup_down_version in precheck_aap_versions[aap_setup_rhel_version]) }}"
-    fail_msg: "Specified AAP2 version {{ aap_setup_down_version }} is not a valid combination with Red Hat Enterprise Linux {{ aap_setup_rhel_version }}"
+      - aap_setup_rhel_version in precheck_aap_versions | list and aap_setup_down_version in precheck_aap_versions[aap_setup_rhel_version]
+    fail_msg: >-
+      Specified Red Hat Ansible Automation Platform version {{ aap_setup_down_version }} is not a valid combination with
+      Red Hat Enterprise Linux {{ aap_setup_rhel_version }}
     quiet: true
