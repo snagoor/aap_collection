@@ -1,5 +1,4 @@
 ---
-# defaults file for freeipa
 freeipa_domain_name: "{{ ansible_domain }}"
 freeipa_realm_name: "{{ freeipa_domain_name | upper }}"
 freeipa_dm_password: "RedHat1!"

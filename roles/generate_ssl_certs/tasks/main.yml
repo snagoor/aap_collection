@@ -1,5 +1,4 @@
 ---
-# tasks file for generate_self_signed_certs
 - name: Ensure python cryptography package is installed
   ansible.builtin.dnf:
     name: python3-cryptography
@@ -7,7 +6,7 @@
 
 - name: Create a directory to store certs
   ansible.builtin.file:
-    path: "{{ ssl_certs_path }}"
+    path: "{{ generate_ssl_certs_path }}"
     state: directory
     recurse: true
     owner: root
@@ -16,11 +15,11 @@
 
 - name: Create private key
   community.crypto.openssl_privatekey:
-    path: "{{ ssl_certs_path }}/{{ ansible_hostname }}.key"
+    path: "{{ generate_ssl_certs_path }}/{{ ansible_hostname }}.key"
 
 - name: Create certificate signing request (CSR) for SSL certificate
   community.crypto.openssl_csr_pipe:
-    privatekey_path: "{{ ssl_certs_path }}/{{ ansible_hostname }}.key"
+    privatekey_path: "{{ generate_ssl_certs_path }}/{{ ansible_hostname }}.key"
     common_name: "{{ ansible_fqdn }}"
     use_common_name_for_san: true
     basic_constraints_critical: true
@@ -37,9 +36,9 @@
 
 - name: Create self-signed SSL certificate from CSR
   community.crypto.x509_certificate:
-    path: "{{ ssl_certs_path }}/{{ ansible_hostname }}.crt"
+    path: "{{ generate_ssl_certs_path }}/{{ ansible_hostname }}.crt"
     csr_content: "{{ cert_csr['csr'] }}"
-    privatekey_path: "{{ ssl_certs_path }}/{{ ansible_hostname }}.key"
+    privatekey_path: "{{ generate_ssl_certs_path }}/{{ ansible_hostname }}.key"
     provider: selfsigned
     owner: root
     group: root
@@ -47,7 +46,7 @@
 
 - name: Find cert and key files
   ansible.builtin.find:
-    paths: "{{ ssl_certs_path }}"
+    paths: "{{ generate_ssl_certs_path }}"
     patterns:
       - "*.crt"
       - "*.key"
@@ -72,9 +71,11 @@
     create: true
     search_string: "{{ item['content'] | b64decode }}"
     state: present
+    mode: "0644"
   loop: "{{ concat_file['results'] }}"
   loop_control:
     label: "{{ item['source'] }}"
 
 - name: Remove empty lines from the certificate file
   ansible.builtin.command: bash -c "sed -i '/^$/d' /etc/pki/tls/private/{{ ansible_hostname }}.pem"
+  changed_when: false

@@ -1,10 +1,9 @@
 ---
-# tasks file for configure_aap_cluster
 # References
 # https://access.redhat.com/solutions/5228651
 # https://access.redhat.com/solutions/3047261
 # https://access.redhat.com/solutions/3635571
-- name: Drop-in configuration file for web sockets over port 80
+- name: Drop-in configuration file for web sockets over HTTP port
   ansible.builtin.copy:
     content: "{{ custom_config }}"
     dest: /etc/tower/conf.d/custom.py

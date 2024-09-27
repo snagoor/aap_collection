@@ -1,5 +1,4 @@
 ---
-# defaults file for precheck
 # AAP Compatability Matrix dictionary
 precheck_aap_versions:
   "8":

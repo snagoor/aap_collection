@@ -1,5 +1,4 @@
 ---
-# tasks file for freeipa
 - name: Gather the package facts
   ansible.builtin.package_facts:
     manager: auto
@@ -73,6 +72,7 @@
   ansible.builtin.command: bash -c "ipa-server-install -U --uninstall"
   register: uninstall_ipa
   when: force_uninstall_ipa and ipa_installation.rc == 0
+  changed_when: force_uninstall_ipa
 
 - name: Install FreeIPA
   ansible.builtin.command: >
@@ -99,6 +99,7 @@
     {% endif %}
   register: ipa_install
   when: ipa_installation.rc != 0 or force_uninstall_ipa
+  changed_when: ipa_installation.rc != 0 or force_uninstall_ipa
 
 - name: Add FreeIPA hostname entry in base machine
   ansible.builtin.lineinfile:
@@ -113,6 +114,8 @@
 - name: Initialize IPA admin credentials
   ansible.builtin.command: bash -c "echo '{{ freeipa_admin_password }}' | kinit admin"
   when: ipa_installation['rc'] == 0 or (ipa_install is defined and ipa_install['rc'] == 0)
+  changed_when: ipa_installation['rc'] == 0 or (ipa_install is defined and ipa_install['rc'] == 0)
+
 
 - name: Modify the global password policy
   community.general.ipa_pwpolicy:
@@ -136,11 +139,4 @@
     path: /etc/NetworkManager/conf.d/zzz-ipa.conf
     regexp: '^servers=127\.0\.0\.1*'
     line: "servers={{ ansible_default_ipv4['gateway'] }}"
-  register: nm_config
-
-- name: Restart Network Manager Service
-  ansible.builtin.service:
-    name: NetworkManager
-    state: restarted
-    enabled: true
-  when: nm_config['changed']
+  notify: Restart Network Manager Service

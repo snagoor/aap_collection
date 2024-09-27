@@ -78,7 +78,9 @@
     owner: root
     group: root
     mode: "0644"
-  notify: Restart keycloak service
+  notify:
+    - Restart keycloak service
+    - Start and Enable Red Hat Keycloak service
 
 - name: Create keycloak environment file
   ansible.builtin.template:
@@ -95,15 +97,6 @@
     owner: root
     group: root
     mode: "0644"
-  register: keycloak_service_file
-
-- name: Reload systemd configuration
-  ansible.builtin.systemd:
-    daemon_reload: true
-  when: keycloak_service_file['changed']
-
-- name: Start and Enable Red Hat Keycloak service
-  ansible.builtin.service:
-    name: keycloak
-    state: started
-    enabled: true
+  notify:
+    - Reload systemd configuration
+    - Start and Enable Red Hat Keycloak service

@@ -1,6 +1,5 @@
 ---
-# tasks file for hashicorp_vault
-- name: Install vault RPM repo
+- name: Install Vault RPM repo
   ansible.builtin.get_url:
     url: https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
     dest: /etc/yum.repos.d/hashicorp.repo
@@ -35,7 +34,7 @@
     group: vault
     mode: "0640"
 
-- name: Create certificate signing request (CSR) for self-signed certificate
+- name: Create Certificate Signing Request (CSR) for self-signed certificate
   community.crypto.openssl_csr_pipe:
     privatekey_path: "{{ hashicorp_vault_ssl_dir }}/vault_ca.key"
     common_name: "{{ ansible_fqdn }}"
@@ -45,7 +44,7 @@
       - "DNS:secret.{{ ansible_domain }}"
   register: csr
 
-- name: Create self-signed certificate from CSR
+- name: Create self-signed Certificate from CSR
   community.crypto.x509_certificate:
     path: "{{ hashicorp_vault_ssl_dir }}/vault_ca.pem"
     csr_content: "{{ csr['csr'] }}"
@@ -55,7 +54,7 @@
     group: vault
     mode: "0644"
 
-- name: Create vault configuration file
+- name: Create Vault configuration file
   ansible.builtin.copy:
     src: vault_config.hcl
     dest: "{{ hashicorp_vault_home_dir }}/vault.hcl"
@@ -63,26 +62,21 @@
     group: root
     mode: "0660"
 
-- name: Create vault server systemd unit file
+- name: Create Vault server systemd unit file
   ansible.builtin.copy:
     src: vault.service
     dest: /etc/systemd/system/vault.service
     owner: root
     group: root
     mode: "0655"
+  notify: Restart and enable vault service
 
 - name: Run systemd daemon reload
   ansible.builtin.systemd:
     name: vault
     daemon_reload: true
 
-- name: Restart and enable vault service
-  ansible.builtin.service:
-    name: vault
-    enabled: true
-    state: restarted
-
-- name: Write VAULT vars to bashrc
+- name: Write Vault vars to bashrc
   ansible.builtin.lineinfile:
     line: "{{ item }}"
     path: /root/.bashrc
@@ -91,24 +85,26 @@
     - export VAULT_CACERT="{{ hashicorp_vault_ssl_dir }}vault_ca.pem"
     - export VAULT_TOKEN="{{ vault_init_parsed['root_token'] | quote }}"
 
-- name: Check vault status
+- name: Check Vault status
   ansible.builtin.command: bash -c "source /root/.bashrc; vault status"
   failed_when: false
+  changed_when: false
   register: vault_status
 
-- name: Init the vault server and grab the keys
+- name: Initialize Vault server and grab the keys
   ansible.builtin.command: bash -c "source /root/.bashrc; vault operator init -format json"
   when: "'Initialized        false' in vault_status['stdout_lines']"
+  changed_when: "'Initialized        false' in vault_status['stdout_lines']"
   register: vault_init
 
-- name: Parse output of vault init
+- name: Parse output of Vault Initialize command
   ansible.builtin.set_fact:
     vault_init_parsed: "{{ vault_init['stdout'] | from_json }}"
   when:
     - vault_init is defined
     - vault_init['changed']
 
-- name: Write unseal keys to files
+- name: Write Unseal keys to files
   ansible.builtin.copy:
     dest: "unseal_key_{{ index }}"
     content: "{{ item }}"
@@ -122,6 +118,8 @@
     - vault_init is defined
     - vault_init['changed']
   delegate_to: localhost
+  vars:
+    ansible_connection: local
 
 - name: Write root token to file
   ansible.builtin.copy:
@@ -134,12 +132,15 @@
     - vault_init is defined
     - vault_init['changed']
   delegate_to: localhost
+  vars:
+    ansible_connection: local
 
-- name: Unseal vault
+- name: Unseal Vault
   ansible.builtin.command: bash -c "source /root/.bashrc; vault operator unseal -address=https://{{ ansible_fqdn }}:8200 {{ item }}"
-  loop: "{{ vault_init_parsed['unseal_keys_hex'] | flatten(levels=1) }}"
-  loop_control:
-    index_var: index
   when:
     - vault_init is defined
     - vault_init['changed']
+  changed_when: vault_init['changed']
+  loop: "{{ vault_init_parsed['unseal_keys_hex'] | flatten(levels=1) }}"
+  loop_control:
+    index_var: index

@@ -1,5 +1,4 @@
 ---
-# tasks file for precheck
 - name: Ansible Automation Platform OS Compatability Check
   ansible.builtin.assert:
     that:

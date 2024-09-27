@@ -1,6 +1,5 @@
 ---
-# defaults file for create_ipa_users
-ldap_users:
+ipa_users_list:
   - name: nshaik
     password: "P@ssw0rd"
     firstname: Nagoor
@@ -13,7 +12,8 @@ ldap_users:
     password: "P@ssw0rd"
     firstname: Bob
     lastname: Walsh
-validity_years: 10
-ldap_hostname: "ldap.example.com"
-ldap_username: "admin"
-ldap_password: "P@ssw0rd"
+ipa_users_validity_years: 10
+ipa_users_extra_info:
+  - ldap_hostname: "ldap.example.com"
+  - ldap_username: "admin"
+  - ldap_password: "P@ssw0rd"

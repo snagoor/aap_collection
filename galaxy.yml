@@ -9,8 +9,10 @@ license:
   - GPL-2.0-or-later
 license_file: ""
 tags:
+  - linux
   - common
   - aap2
+  - infrastructure
 dependencies:
   "ansible.posix": ">=1.5.4"
   "awx.awx": ">=23.0.0"

@@ -1,3 +1,5 @@
 ---
 - name: Restart AAP Service
   ansible.builtin.command: automation-controller-service restart
+  register: aap_restart
+  changed_when: aap_restart['changed']

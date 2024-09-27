@@ -1,8 +1,7 @@
 ---
-# tasks file for create_ipa_users
-- name: Set local variables
+- name: Set local variable facts
   ansible.builtin.set_fact:
-    cert_year: "{{ ansible_date_time['year'] | int + validity_years | default(10) }}"
+    cert_year: "{{ ansible_date_time['year'] | int + ipa_users_validity_years | default(10) }}"
     cert_month: "{{ ansible_date_time['month'] }}"
     cert_day: "{{ ansible_date_time['day'] }}"
     cert_hour: "{{ ansible_date_time['hour'] }}"
@@ -21,7 +20,7 @@
     krbpasswordexpiration: "{{ krb_expiry_date }}"
     givenname: "{{ item['firstname'] }}"
     sn: "{{ item['lastname'] }}"
-    ipa_host: "{{ ldap_hostname | default(ansible_fqdn) }}"
-    ipa_user: "{{ ldap_username }}"
-    ipa_pass: "{{ ldap_password }}"
-  loop: "{{ ldap_users }}"
+    ipa_host: "{{ ipa_users_extra_info['ldap_hostname'] | default(ansible_fqdn) }}"
+    ipa_user: "{{ ipa_users_extra_info['ldap_username'] }}"
+    ipa_pass: "{{ ipa_users_extra_info['ldap_password'] }}"
+  loop: "{{ ipa_users_list }}"

@@ -5,3 +5,13 @@
     name: keycloak
     state: restarted
     enabled: true
+
+- name: Reload systemd configuration
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Start and Enable Red Hat Keycloak service
+  ansible.builtin.service:
+    name: keycloak
+    state: started
+    enabled: true
