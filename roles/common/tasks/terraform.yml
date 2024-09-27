@@ -8,3 +8,84 @@
     src: "{{ slug }}_hosts.j2"
     mode: "0644"
   loop: "{{ groups['all'] }}"
+
+- name: Ensure the SSH directory exists
+  ansible.builtin.file:
+    path: /root/.ssh/
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Generate SSH Key Pair
+  ansible.builtin.user:
+    name: root
+    generate_ssh_key: true
+    ssh_key_bits: 2048
+    ssh_key_comment: Ansible Generated
+  when: inventory_hostname in ansible_play_batch[0]
+
+- name: Find SSH key files
+  ansible.builtin.find:
+    paths: /root/.ssh
+    use_regex: true
+    patterns: "^id_rsa"
+  register: ssh_key_files
+  when: inventory_hostname in ansible_play_batch[0]
+
+- name: Slurp SSH key content
+  ansible.builtin.slurp:
+    src: "{{ item['path'] }}"
+  when: inventory_hostname in ansible_play_batch[0]
+  register: ssh_keys
+  loop: "{{ ssh_key_files['files'] }}"
+  loop_control:
+    label: "{{ item['path'] }}"
+
+- name: Register variables
+  ansible.builtin.set_fact:
+    ssh_public_key: "{{ ssh_keys['results'][1]['content'] | b64decode }}"
+    ssh_private_key: "{{ ssh_keys['results'][0]['content'] | b64decode }}"
+  when: inventory_hostname in ansible_play_batch[0]
+  delegate_to: "{{ item }}"
+  delegate_facts: true
+  loop: "{{ groups['all'] }}"
+
+- name: Copy Public SSH keys to all servers
+  ansible.builtin.copy:
+    content: "{{ ssh_public_key }}"
+    dest: "/root/.ssh/id_rsa.pub"
+    owner: root
+    group: root
+    mode: "0664"
+  when: inventory_hostname not in ansible_play_batch[0]
+
+- name: Copy Private SSH keys to all servers
+  ansible.builtin.copy:
+    content: "{{ ssh_private_key }}"
+    dest: "/root/.ssh/id_rsa"
+    owner: root
+    group: root
+    mode: "0600"
+  when: inventory_hostname not in ansible_play_batch[0]
+
+- name: Set authorized key for root user
+  ansible.posix.authorized_key:
+    user: root
+    state: present
+    key: "{{ ssh_public_key }}"
+
+- name: Copy SSH Configuration file to ignore hostkey checking
+  ansible.builtin.template:
+    src: ssh_config
+    dest: /root/.ssh/config
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Add PermitRootLogin to SSH configuration
+  ansible.builtin.lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: "^PermitRootLogin"
+    line: "PermitRootLogin yes"
+  notify: Restart SSHD service
