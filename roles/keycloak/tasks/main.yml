@@ -2,7 +2,7 @@
 # tasks file for keycloak
 - name: Ensure the Keycloak base path exists
   ansible.builtin.file:
-    path: "{{ (keycloak_home_directory | regex_replace('/[^/]+/?$', '/') }}"
+    path: "{{ keycloak_home_directory | regex_replace('/[^/]+/?$', '/') }}"
     state: directory
     recurse: true
     owner: root
@@ -17,7 +17,7 @@
 - name: Download and Unzip Keycloak bundle
   ansible.builtin.unarchive:
     src: "{{ keycloak_zip_file_path }}"
-    dest: "{{ (keycloak_home_directory | regex_replace('/[^/]+/?$', '/') }}"
+    dest: "{{ keycloak_home_directory | regex_replace('/[^/]+/?$', '/') }}"
     remote_src: true
     owner: root
     group: root
