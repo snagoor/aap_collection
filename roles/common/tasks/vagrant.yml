@@ -63,6 +63,15 @@
   ansible.builtin.hostname:
     name: "{{ lookup('community.general.dig', ''~ansible_eth1['ipv4']['address']~'/PTR', '@' + dns_server) }}"
   when: "'localhost' in ansible_nodename"
-  notify:
-    - Force gather facts
-    - Generate /etc/hosts entries
+  register: set_hostname
+
+- name: Force gather facts
+  ansible.builtin.setup:
+  when: set_hostname['changed']
+
+- name: Generate /etc/hosts entries
+  ansible.builtin.template:
+    dest: /etc/hosts
+    src: "{{ slug }}_hosts.j2"
+    mode: "0644"
+  loop: "{{ groups['all'] }}"

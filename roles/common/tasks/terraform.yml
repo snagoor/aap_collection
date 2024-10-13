@@ -7,9 +7,9 @@
     dest: /etc/hosts
     src: "{{ slug }}_hosts.j2"
     mode: "0644"
-  loop: "{{ groups['all'] }}"
+  loop: "{{ ansible_play_batch | list }}"
 
-- name: Ensure the SSH directory exists
+- name: Ensure the ssh directory exists
   ansible.builtin.file:
     path: /root/.ssh/
     state: directory
@@ -42,7 +42,7 @@
   loop_control:
     label: "{{ item['path'] }}"
 
-- name: Register variables
+- name: Register SSH key variables
   ansible.builtin.set_fact:
     ssh_public_key: "{{ ssh_keys['results'][1]['content'] | b64decode }}"
     ssh_private_key: "{{ ssh_keys['results'][0]['content'] | b64decode }}"
@@ -51,7 +51,7 @@
   delegate_facts: true
   loop: "{{ groups['all'] }}"
 
-- name: Copy Public SSH keys to all servers
+- name: Copy public SSH keys to all servers
   ansible.builtin.copy:
     content: "{{ ssh_public_key }}"
     dest: "/root/.ssh/id_rsa.pub"
@@ -60,7 +60,7 @@
     mode: "0664"
   when: inventory_hostname not in ansible_play_batch[0]
 
-- name: Copy Private SSH keys to all servers
+- name: Copy private SSH keys to all servers
   ansible.builtin.copy:
     content: "{{ ssh_private_key }}"
     dest: "/root/.ssh/id_rsa"
@@ -75,7 +75,7 @@
     state: present
     key: "{{ ssh_public_key }}"
 
-- name: Copy SSH Configuration file to ignore hostkey checking
+- name: Ignore strict hostkey checking
   ansible.builtin.template:
     src: ssh_config
     dest: /root/.ssh/config
@@ -83,7 +83,7 @@
     group: root
     mode: "0600"
 
-- name: Add PermitRootLogin to SSH configuration
+- name: Add PermitRootLogin to sshd configuration
   ansible.builtin.lineinfile:
     dest: /etc/ssh/sshd_config
     regexp: "^PermitRootLogin"
